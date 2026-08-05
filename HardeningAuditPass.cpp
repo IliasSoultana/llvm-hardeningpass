@@ -1,15 +1,7 @@
 // HardeningAuditPass.cpp
 //
-// An LLVM module pass that audits functions for compiler-inserted security
-// hardening attributes.  Run it with opt before shipping a binary to catch
-// functions where the toolchain left protections off.
-//
-// Checks per function:
-//   SSP          stack-smashing protection (ssp / sspstrong / sspreq)
-//   SafeStack    separate unsafe stack  (-fsanitize=safe-stack)
-//   ShadowCS     shadow call stack      (-fsanitize=shadow-call-stack)
-//   NoReturn     function never returns (no ret needed — attack surface note)
-//   Calls        number of call / invoke instructions (rough complexity proxy)
+// LLVM module pass that audits functions for compiler security hardening
+// attributes: SSP, SafeStack, ShadowCallStack.
 //
 // Usage:
 //   opt -load-pass-plugin ./HardeningAuditPass.so \
@@ -29,15 +21,13 @@ using namespace llvm;
 
 namespace {
 
-// ── Per-function findings ─────────────────────────────────────────────────
-
 struct FunctionAudit {
     std::string name;
-    bool ssp          = false;   // any stack-smashing protection attribute
-    bool safe_stack   = false;   // SafeStack attribute
-    bool shadow_cs    = false;   // ShadowCallStack attribute
-    bool no_return    = false;   // noreturn — informational only
-    unsigned calls    = 0;       // call + invoke instruction count
+    bool ssp        = false;
+    bool safe_stack = false;
+    bool shadow_cs  = false;
+    bool no_return  = false;
+    unsigned calls  = 0;  // call + invoke instructions
 };
 
 static FunctionAudit audit_function(const Function &F) {
@@ -57,8 +47,6 @@ static FunctionAudit audit_function(const Function &F) {
 
     return a;
 }
-
-// ── Pass ──────────────────────────────────────────────────────────────────
 
 struct HardeningAuditPass : public PassInfoMixin<HardeningAuditPass> {
 
@@ -104,8 +92,6 @@ struct HardeningAuditPass : public PassInfoMixin<HardeningAuditPass> {
 };
 
 } // namespace
-
-// ── Plugin registration ───────────────────────────────────────────────────
 
 llvm::PassPluginLibraryInfo getHardeningAuditPassPluginInfo() {
     return {
