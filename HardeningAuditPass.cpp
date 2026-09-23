@@ -68,8 +68,15 @@ struct HardeningAuditPass : public PassInfoMixin<HardeningAuditPass> {
 
         errs() << "\n";
         errs() << "=== hardening-audit: " << module_name << " ===\n";
+        // Same array-decay issue as below: bare string literals reach
+        // llvm::format as char[N] and fail its "fundamental or pointer type"
+        // assertion under libstdc++.
         errs() << format("%-40s  %-5s  %-10s  %-9s  %s\n",
-                         "function", "SSP", "SafeStack", "ShadowCS", "calls");
+                         static_cast<const char *>("function"),
+                         static_cast<const char *>("SSP"),
+                         static_cast<const char *>("SafeStack"),
+                         static_cast<const char *>("ShadowCS"),
+                         static_cast<const char *>("calls"));
         errs() << std::string(72, '-') << "\n";
 
         for (const auto &a : results) {
