@@ -73,11 +73,19 @@ struct HardeningAuditPass : public PassInfoMixin<HardeningAuditPass> {
         errs() << std::string(72, '-') << "\n";
 
         for (const auto &a : results) {
+            // The casts matter: when both branches of a ternary are string
+            // literals of equal length the result keeps its array type
+            // (char[4]) instead of decaying, and llvm::format cannot deduce
+            // an array argument. Clang/libc++ tolerated it; GCC did not.
+            const char *ssp_cell        = a.ssp        ? "YES" : "NO";
+            const char *safe_stack_cell = a.safe_stack ? "yes" : "-";
+            const char *shadow_cs_cell  = a.shadow_cs  ? "yes" : "-";
+
             errs() << format("%-40s  %-5s  %-10s  %-9s  %u\n",
                              a.name.c_str(),
-                             a.ssp         ? "YES" : "NO ",
-                             a.safe_stack  ? "yes" : "-",
-                             a.shadow_cs   ? "yes" : "-",
+                             ssp_cell,
+                             safe_stack_cell,
+                             shadow_cs_cell,
                              a.calls);
         }
 
