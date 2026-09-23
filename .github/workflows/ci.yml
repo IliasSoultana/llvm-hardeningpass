@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build plugin and audit IR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install LLVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-18-dev llvm-18-tools clang-18
+          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: |
+          cmake -S . -B build -DLLVM_DIR="$(llvm-config-18 --cmakedir)"
+          cmake --build build -j"$(nproc)"
+
+      - name: Audit the bundled test IR
+        run: |
+          opt -load-pass-plugin ./build/HardeningAuditPass.so \
+              -passes="hardening-audit" -disable-output test/example.ll
+
+      # The bundled IR is hand-written. This compiles real C both ways and
+      # checks the pass sees the difference -- a pass that reports the same
+      # thing regardless of flags would pass the step above unnoticed.
+      - name: Audit compiler output with and without hardening
+        run: |
+          set -e
+          cat > sample.c <<'SRC'
+          #include <string.h>
+          void handle(const char *in) {
+              char buf[64];
+              strncpy(buf, in, sizeof buf - 1);
+              buf[sizeof buf - 1] = '\0';
+          }
+          int main(void) { handle("x"); return 0; }
+          SRC
+          sed -i 's/^          //' sample.c
+
+          clang-18 -O1 -fstack-protector-strong -emit-llvm -S -o protected.ll sample.c
+          clang-18 -O1 -fno-stack-protector    -emit-llvm -S -o unprotected.ll sample.c
+
+          opt -load-pass-plugin ./build/HardeningAuditPass.so \
+              -passes="hardening-audit" -disable-output protected.ll 2>&1 | tee protected.txt
+          opt -load-pass-plugin ./build/HardeningAuditPass.so \
+              -passes="hardening-audit" -disable-output unprotected.ll 2>&1 | tee unprotected.txt
+
+          if ! grep -q "Missing SSP       : 0" protected.txt; then
+            echo "::error::hardened build reported missing SSP"
+            exit 1
+          fi
+          if grep -q "Missing SSP       : 0" unprotected.txt; then
+            echo "::error::unhardened build reported no missing SSP; the pass is not reading attributes"
+            exit 1
+          fi
+          echo "pass distinguishes hardened from unhardened IR"
