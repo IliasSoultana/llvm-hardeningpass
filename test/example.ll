@@ -31,7 +31,7 @@ entry:
   ret void
 }
 
-; ── unhardened function — no SSP ────────────────────────────────────────────
+; ── unhardened function, no SSP ────────────────────────────────────────────
 ; Compiled without -fstack-protector: no hardening attributes at all.
 ; This is what the audit pass should flag.
 define i32 @legacy_parser(ptr %data) {
@@ -49,7 +49,7 @@ entry:
   unreachable
 }
 
-; ── declarations (skipped by the pass — not definitions) ────────────────────
+; ── declarations (skipped by the pass, not definitions) ────────────────────
 declare i32 @validate(ptr, i32)
 declare i32 @log_event(i64)
 declare i32 @strlen(ptr)

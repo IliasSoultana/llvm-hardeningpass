@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/IliasSoultana/llvm-hardeningpass/actions/workflows/ci.yml/badge.svg)](https://github.com/IliasSoultana/llvm-hardeningpass/actions/workflows/ci.yml)
 
-An LLVM module pass that audits functions for compiler security hardening attributes — the IR-level counterpart to [hardening-check](https://github.com/IliasSoultana/hardening-check).
+An LLVM module pass that audits functions for compiler security hardening attributes. The IR-level counterpart to [hardening-check](https://github.com/IliasSoultana/hardening-check).
 
 ## What it checks
 
@@ -12,7 +12,7 @@ An LLVM module pass that audits functions for compiler security hardening attrib
 | **SafeStack** | `-fsanitize=safe-stack` | Stack-based control-flow hijacking |
 | **ShadowCallStack** | `-fsanitize=shadow-call-stack` | Return address overwrite |
 
-`hardening-check` reads a final ELF binary. This pass runs **before** linking, at the IR stage, so you catch gaps earlier in the build pipeline — before the binary even exists.
+`hardening-check` reads a final ELF binary. This pass runs **before** linking, at the IR stage, so you catch gaps earlier in the build pipeline, before the binary even exists.
 
 ## Requirements
 
@@ -89,8 +89,8 @@ For each function definition (skipping declarations) it reads the function's att
 | ELF check (hardening-check) | IR check (this pass) |
 |---|---|
 | Stack canary (`__stack_chk_fail` in `.dynsym`) | `ssp` / `sspstrong` / `sspreq` attribute |
-| NX stack (no `PF_X` on `PT_GNU_STACK`) | not checked at IR level — linker concern |
-| PIE (`ET_DYN` e_type) | not checked at IR level — linker concern |
+| NX stack (no `PF_X` on `PT_GNU_STACK`) | not checked at IR level, linker concern |
+| PIE (`ET_DYN` e_type) | not checked at IR level, linker concern |
 
 ## Why IR and not the binary
 
@@ -100,7 +100,7 @@ For each function definition (skipping declarations) it reads the function's att
 `-fstack-protector` instruments only functions with character arrays.
 `-fstack-protector-strong` widens that considerably, but still not to
 everything. In both cases the linked binary contains `__stack_chk_fail` and an
-ELF-level scanner reports a canary — while individual functions holding
+ELF-level scanner reports a canary, while individual functions holding
 exploitable stack buffers may carry no `ssp` attribute at all. That gap is
 invisible after linking and obvious here.
 
@@ -113,7 +113,7 @@ invisible after linking and obvious here.
   hardened only if every unit is, including vendored static libraries that
   never pass through this pass.
 - **PIE and NX are out of reach.** Both are decided at link time, so no
-  IR-level pass can see them — the ELF scanners cover that half.
+  IR-level pass can see them; the ELF scanners cover that half.
 - **SafeStack and ShadowCallStack are reported, not judged.** Their absence is
   normal; almost nothing enables them. Only missing SSP is counted as a
   warning.
@@ -123,6 +123,6 @@ invisible after linking and obvious here.
 
 ## Related
 
-- [hardening-check](https://github.com/IliasSoultana/hardening-check) — the same question on the finished ELF
-- [elfharden](https://github.com/IliasSoultana/elfharden) · [elfharden-rs](https://github.com/IliasSoultana/elfharden-rs) — Go and Rust implementations of the scanner
-- [diversity-poc](https://github.com/IliasSoultana/diversity-poc) — compiler-level layout diversification
+- [hardening-check](https://github.com/IliasSoultana/hardening-check), the same question on the finished ELF
+- [elfharden](https://github.com/IliasSoultana/elfharden) · [elfharden-rs](https://github.com/IliasSoultana/elfharden-rs), Go and Rust implementations of the scanner
+- [diversity-poc](https://github.com/IliasSoultana/diversity-poc), compiler-level layout diversification

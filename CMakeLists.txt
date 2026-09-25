@@ -17,7 +17,7 @@ add_library(HardeningAuditPass MODULE
     HardeningAuditPass.cpp
 )
 
-# LLVM symbols are resolved at opt load time — do not require them at link time.
+# LLVM symbols are resolved at opt load time, do not require them at link time.
 if(APPLE)
     target_link_options(HardeningAuditPass PRIVATE -undefined dynamic_lookup)
 elseif(UNIX)

@@ -30,7 +30,7 @@ jobs:
               -passes="hardening-audit" -disable-output test/example.ll
 
       # The bundled IR is hand-written. This compiles real C both ways and
-      # checks the pass sees the difference -- a pass that reports the same
+      # checks the pass sees the difference, a pass that reports the same
       # thing regardless of flags would pass the step above unnoticed.
       - name: Audit compiler output with and without hardening
         run: |
